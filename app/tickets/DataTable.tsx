@@ -11,7 +11,7 @@ type DataTableProps = {
 const DataTable = ({ ticketArray }: DataTableProps) => {
   return (
     <div className="w-full mt-5">
-      <div className="rounded-md sm:border">
+      <div className="rounded-md sm:border ">
         <Table>
           <TableHeader>
             <TableRow>
