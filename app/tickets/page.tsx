@@ -3,27 +3,58 @@ import DataTable from './DataTable';
 import Link from 'next/link';
 import { buttonVariants } from '@/components/ui/button';
 import Pagination from '@/components/Pagination';
+import StatusFilter from '@/components/StatusFilter';
+import { Status, Ticket } from '@prisma/client';
 
-type TicketsProps = {
+export type SearchParams = {
+  status: Status;
   page: string;
+  orderBy: keyof Ticket;
+  sorting: 'asc' | 'desc';
 };
 
-const Tickets = async ({ searchParams }: { searchParams: TicketsProps }) => {
+const Tickets = async ({ searchParams }: { searchParams: SearchParams }) => {
   const pageSize = 8;
   const page = parseInt(searchParams.page) || 1;
-  const ticketCount = await prisma.ticket.count();
 
+  const orderBy = searchParams.orderBy ? searchParams.orderBy : 'updatedAt';
+  const sorting = searchParams.sorting ? searchParams.sorting : 'asc';
+
+  const statuses = Object.values(Status);
+
+  const status = statuses.includes(searchParams.status) ? searchParams.status : undefined;
+
+  let where = {};
+
+  if (status) {
+    where = {
+      status,
+    };
+  } else {
+    where = {
+      NOT: [{ status: 'CLOSED' as Status }],
+    };
+  }
+
+  const ticketCount = await prisma.ticket.count({ where });
   const ticketArray = await prisma.ticket.findMany({
+    where,
+    orderBy: {
+      [orderBy]: sorting,
+    },
     take: pageSize,
     skip: (page - 1) * pageSize,
   });
 
   return (
     <div>
-      <Link href="/tickets/new" className={buttonVariants({ variant: 'default' })}>
-        Create New Ticket
-      </Link>
-      <DataTable ticketArray={ticketArray} />
+      <div className="flex gap-2">
+        <Link href="/tickets/new" className={buttonVariants({ variant: 'default' })}>
+          Create New Ticket
+        </Link>
+        <StatusFilter />
+      </div>
+      <DataTable ticketArray={ticketArray} searchParams={searchParams} />
       <Pagination itemCount={ticketCount} pageSize={pageSize} currentPage={page} />
     </div>
   );
